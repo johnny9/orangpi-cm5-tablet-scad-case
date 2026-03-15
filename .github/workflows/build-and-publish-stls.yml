@@ -41,7 +41,7 @@ jobs:
               --viewall \
               --autocenter \
               --colorscheme Tomorrow \
-              -D 'show_mode="assembly"' \
+              -D 'show_mode="layout"' \
               -D 'explode=16' \
               orange_pi_tablet_case.scad
           cp orange_pi_tablet_case.scad site/latest/orange_pi_tablet_case.scad

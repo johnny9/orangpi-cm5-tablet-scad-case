@@ -6,10 +6,10 @@
 //   - PCB is screwed to the bottom shell
 //   - Top cover is screwless and slides into rails in the bottom shell
 //
-// Export either assembled view, base only, or lid only.
+// Export assembled view, separate printable parts, or single-part exports.
 
-show_mode = "lid";   // "assembly", "base", "lid"
-explode = 10;
+show_mode = "lid";   // "assembly", "layout", "base", "lid"
+explode = 10;        // spacing used by the side-by-side layout preview
 
 // -----------------------------
 // User-tunable dimensions
@@ -280,8 +280,18 @@ module assembled_case() {
             color([0.25,0.25,0.28,1.0]) lid_shell();
 }
 
+module layout_case() {
+    layout_gap = max(explode, 12);
+    color([0.20,0.20,0.22,1.0]) base_shell();
+    translate([outer_x + layout_gap, outer_y, lid_h])
+        rotate([180,0,0])
+            color([0.25,0.25,0.28,1.0]) lid_shell();
+}
+
 if (show_mode == "assembly") {
     assembled_case();
+} else if (show_mode == "layout") {
+    layout_case();
 } else if (show_mode == "base") {
     base_shell();
 } else if (show_mode == "lid") {
