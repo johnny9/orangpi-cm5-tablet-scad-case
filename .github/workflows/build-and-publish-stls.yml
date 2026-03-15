@@ -1,0 +1,144 @@
+name: Build and publish STLs
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install OpenSCAD
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openscad
+
+      - name: Build STL exports and preview image
+        run: |
+          mkdir -p site/latest
+          openscad -o site/latest/orange_pi_tablet_case_bottom.stl -D 'show_mode="base"' orange_pi_tablet_case.scad
+          openscad -o site/latest/orange_pi_tablet_case_top.stl -D 'show_mode="lid"' orange_pi_tablet_case.scad
+          openscad \
+            -o site/latest/orange_pi_tablet_case_preview.png \
+            --render \
+            --imgsize 1600,1200 \
+            --viewall \
+            --autocenter \
+            --colorscheme Tomorrow \
+            -D 'show_mode="assembly"' \
+            -D 'explode=16' \
+            orange_pi_tablet_case.scad
+          cp orange_pi_tablet_case.scad site/latest/orange_pi_tablet_case.scad
+
+      - name: Generate Pages index
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"
+          repo="${GITHUB_REPOSITORY#*/}"
+          page_url="https://${owner}.github.io/${repo}/"
+          short_sha="${GITHUB_SHA::7}"
+          cat > site/index.html <<EOF
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Latest STL Builds</title>
+            <style>
+              :root { color-scheme: light; }
+              body {
+                margin: 0;
+                font-family: Georgia, "Times New Roman", serif;
+                background: linear-gradient(180deg, #f3f0e6 0%, #ddd5c5 100%);
+                color: #1f1d1a;
+              }
+              main {
+                max-width: 760px;
+                margin: 0 auto;
+                padding: 48px 20px 64px;
+              }
+              h1 { margin: 0 0 12px; font-size: 2.2rem; }
+              p { line-height: 1.55; }
+              .card {
+                background: rgba(255, 255, 255, 0.72);
+                border: 1px solid rgba(31, 29, 26, 0.14);
+                border-radius: 18px;
+                padding: 20px;
+                backdrop-filter: blur(8px);
+              }
+              ul { padding-left: 1.2rem; }
+              a { color: #0b4f6c; }
+              code {
+                font-family: "SFMono-Regular", Consolas, monospace;
+                background: rgba(31, 29, 26, 0.06);
+                padding: 0.15rem 0.35rem;
+                border-radius: 6px;
+              }
+              img {
+                display: block;
+                width: 100%;
+                height: auto;
+                margin-top: 18px;
+                border-radius: 12px;
+                border: 1px solid rgba(31, 29, 26, 0.12);
+                background: #f7f4ee;
+              }
+            </style>
+          </head>
+          <body>
+            <main>
+              <h1>Latest STL Builds</h1>
+              <p>Generated from <code>${GITHUB_REF_NAME}</code> at commit <a href="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}"><code>${short_sha}</code></a>.</p>
+              <div class="card">
+                <ul>
+                  <li><a href="${page_url}latest/orange_pi_tablet_case_bottom.stl">Bottom STL</a></li>
+                  <li><a href="${page_url}latest/orange_pi_tablet_case_top.stl">Lid STL</a></li>
+                  <li><a href="${page_url}latest/orange_pi_tablet_case_preview.png">Assembly preview image</a></li>
+                  <li><a href="${page_url}latest/orange_pi_tablet_case.scad">Source SCAD</a></li>
+                </ul>
+                <img src="${page_url}latest/orange_pi_tablet_case_preview.png" alt="Preview render of the latest bottom and lid build">
+              </div>
+            </main>
+          </body>
+          </html>
+          EOF
+          touch site/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
