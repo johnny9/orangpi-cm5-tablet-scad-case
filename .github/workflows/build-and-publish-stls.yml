@@ -26,23 +26,24 @@ jobs:
       - name: Install OpenSCAD
         run: |
           sudo apt-get update
-          sudo apt-get install -y openscad
+          sudo apt-get install -y openscad xvfb
 
       - name: Build STL exports and preview image
         run: |
           mkdir -p site/latest
           openscad -o site/latest/orange_pi_tablet_case_bottom.stl -D 'show_mode="base"' orange_pi_tablet_case.scad
           openscad -o site/latest/orange_pi_tablet_case_top.stl -D 'show_mode="lid"' orange_pi_tablet_case.scad
-          openscad \
-            -o site/latest/orange_pi_tablet_case_preview.png \
-            --render \
-            --imgsize 1600,1200 \
-            --viewall \
-            --autocenter \
-            --colorscheme Tomorrow \
-            -D 'show_mode="assembly"' \
-            -D 'explode=16' \
-            orange_pi_tablet_case.scad
+          xvfb-run -a -s "-screen 0 1600x1200x24" \
+            openscad \
+              -o site/latest/orange_pi_tablet_case_preview.png \
+              --render \
+              --imgsize 1600,1200 \
+              --viewall \
+              --autocenter \
+              --colorscheme Tomorrow \
+              -D 'show_mode="assembly"' \
+              -D 'explode=16' \
+              orange_pi_tablet_case.scad
           cp orange_pi_tablet_case.scad site/latest/orange_pi_tablet_case.scad
 
       - name: Generate Pages index
