@@ -10,6 +10,7 @@
 
 show_mode = "lid";   // "assembly", "layout", "base", "lid"
 explode = 10;        // spacing used by the side-by-side layout preview
+assembly_slide_offset = 0;
 
 // -----------------------------
 // User-tunable dimensions
@@ -275,7 +276,7 @@ module pcb_mock() {
 module assembled_case() {
     color([0.20,0.20,0.22,1.0]) base_shell();
     pcb_mock();
-    translate([0, outer_y - explode, base_h + lid_thickness])
+    translate([0, outer_y - assembly_slide_offset, base_h + lid_thickness])
         rotate([180,0,0])
             color([0.25,0.25,0.28,1.0]) lid_shell();
 }
